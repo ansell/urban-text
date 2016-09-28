@@ -45,6 +45,10 @@
 			<artifactId>jopt-simple</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.github.ansell.csv</groupId>
+			<artifactId>csvstream</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
@@ -56,6 +60,11 @@
 				<groupId>net.sf.jopt-simple</groupId>
 				<artifactId>jopt-simple</artifactId>
 				<version>5.0.2</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.ansell.csv</groupId>
+				<artifactId>csvstream</artifactId>
+				<version>0.0.1</version>
 			</dependency>
 			<dependency>
 				<groupId>junit</groupId>
