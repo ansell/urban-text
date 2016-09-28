@@ -7,6 +7,7 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -27,6 +28,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
+
+import joptsimple.OptionException;
 
 /**
  * Tests for {@link UrbanTextReporter}
@@ -57,6 +60,18 @@ public class UrbanTextReporterTest {
 
 	@After
 	public void tearDown() throws Exception {
+	}
+
+	@Test
+	public final void testMainUnknownOption() throws Exception {
+		thrown.expect(OptionException.class);
+		UrbanTextReporter.main("--unknown-option");
+	}
+
+	@Test
+	public final void testMainMissingInput() throws Exception {
+		thrown.expect(IOException.class);
+		UrbanTextReporter.main("--input", testDir.resolve("does-not-exist.dat").toAbsolutePath().toString());
 	}
 
 	/**

@@ -40,7 +40,7 @@ import joptsimple.OptionSpec;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public class UrbanTextReporter {
+public final class UrbanTextReporter {
 
 	public static void main(String... args) throws Exception {
 		final OptionParser parser = new OptionParser();
@@ -152,6 +152,12 @@ public class UrbanTextReporter {
 		Collections.sort(sortedOthers);
 		prioritisedCharsets.addAll(sortedOthers);
 		return prioritisedCharsets;
+	}
+
+	/**
+	 * Private constructor for static-only class
+	 */
+	private UrbanTextReporter() {
 	}
 
 }
