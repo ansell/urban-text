@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.ansell.csv.sum</groupId>
 	<artifactId>urban-text</artifactId>
-	<version>0.4.1-SNAPSHOT</version>
+	<version>0.0.1-SNAPSHOT</version>
 	<name>urban-text</name>
 	<description>Get a feeling for which encoding neighbourhood your unknown text file is living in</description>
 	<packaging>jar</packaging>

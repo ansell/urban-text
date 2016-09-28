@@ -17,6 +17,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,10 +46,10 @@ public class UrbanTextReporter {
 		final OptionParser parser = new OptionParser();
 
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
-		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
-				.describedAs("The input file to be investigated.");
+		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).describedAs(
+				"The input file to be investigated. Will attempt to use standard in if none is specified.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
-				.describedAs("The file to contain the output. Will use standard out if none is specified.");
+				.describedAs("The file to contain the output. Will attempt to use standard out if none is specified.");
 
 		OptionSet options = null;
 
@@ -65,30 +66,43 @@ public class UrbanTextReporter {
 			return;
 		}
 
-		final Path inputPath = input.value(options).toPath();
-		if (!Files.exists(inputPath)) {
-			throw new FileNotFoundException("Could not find input file: " + inputPath.toString());
-		}
-
-		Set<Charset> prioritisedCharsets = getPrioritisedCharsets();
-
-		Writer outputWriter;
-		if (options.has(output)) {
-			final Path outputPath = output.value(options).toPath();
-			if (Files.exists(outputPath)) {
-				throw new FileNotFoundException(
-						"Output file already exists, not overwriting: " + outputPath.toString());
+		Path tempFile = null;
+		try {
+			final Path inputPath;
+			if (options.has(input)) {
+				inputPath = input.value(options).toPath();
+				if (!Files.exists(inputPath)) {
+					throw new FileNotFoundException("Could not find input file: " + inputPath.toString());
+				}
+			} else {
+				inputPath = tempFile = Files.createTempFile("UrbanTextInput-", ".txt");
+				Files.copy(System.in, tempFile, StandardCopyOption.REPLACE_EXISTING);
 			}
-			outputWriter = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-		} else {
-			outputWriter = new PrintWriter(System.out);
-		}
 
-		try (SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
-				Arrays.asList("Charset", "EncoderError"));) {
-			runReporter(inputPath, prioritisedCharsets, csvWriter);
+			final Writer outputWriter;
+			if (options.has(output)) {
+				final Path outputPath = output.value(options).toPath();
+				if (Files.exists(outputPath)) {
+					throw new FileNotFoundException(
+							"Output file already exists, not overwriting: " + outputPath.toString());
+				}
+				outputWriter = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8,
+						StandardOpenOption.CREATE_NEW);
+			} else {
+				outputWriter = new PrintWriter(System.out);
+			}
+
+			final Set<Charset> prioritisedCharsets = getPrioritisedCharsets();
+			try (SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
+					Arrays.asList("Charset", "EncoderError"));) {
+				runReporter(inputPath, prioritisedCharsets, csvWriter);
+			} finally {
+				outputWriter.close();
+			}
 		} finally {
-			outputWriter.close();
+			if (tempFile != null) {
+				Files.deleteIfExists(tempFile);
+			}
 		}
 	}
 
