@@ -93,9 +93,8 @@ public class UrbanTextReporter {
 			}
 
 			final Set<Charset> prioritisedCharsets = getPrioritisedCharsets();
-			try (SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
-					Arrays.asList("Charset", "EncoderError"));) {
-				runReporter(inputPath, prioritisedCharsets, csvWriter);
+			try {
+				runReporter(inputPath, prioritisedCharsets, outputWriter);
 			} finally {
 				outputWriter.close();
 			}
@@ -106,11 +105,13 @@ public class UrbanTextReporter {
 		}
 	}
 
-	private static void runReporter(final Path inputPath, Set<Charset> prioritisedCharsets, SequenceWriter csvWriter)
+	public static void runReporter(final Path inputPath, Set<Charset> prioritisedCharsets, Writer outputWriter)
 			throws IOException {
 
 		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(inputPath.toFile(), "r");
-				final FileChannel inChannel = randomAccessFile.getChannel();) {
+				final FileChannel inChannel = randomAccessFile.getChannel();
+				final SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
+						Arrays.asList("Charset", "EncoderError"));) {
 			MappedByteBuffer inBuffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, inChannel.size());
 			for (Charset nextCharset : prioritisedCharsets) {
 				try {
@@ -131,7 +132,7 @@ public class UrbanTextReporter {
 		}
 	}
 
-	private static Set<Charset> getPrioritisedCharsets() {
+	public static Set<Charset> getPrioritisedCharsets() {
 		Set<Charset> prioritisedCharsets = new LinkedHashSet<>();
 
 		// Add some likely candidates at the top of the list so they appear at
