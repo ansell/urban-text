@@ -11,21 +11,18 @@ import java.io.RandomAccessFile;
 import java.io.Writer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
-import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
-import java.nio.charset.UnmappableCharacterException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -107,7 +104,7 @@ public class UrbanTextReporter {
 					nextCharset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
 							.onUnmappableCharacter(CodingErrorAction.REPORT).decode(inBuffer);
 					csvWriter.write(Arrays.asList(nextCharset.name(), ""));
-				} catch (MalformedInputException | UnmappableCharacterException e) {
+				} catch (CharacterCodingException e) {
 					csvWriter.write(Arrays.asList(nextCharset.name(), e.getMessage()));
 				} catch (IOException e) {
 					// Other IO Exceptions are not likely to be recoverable, so
