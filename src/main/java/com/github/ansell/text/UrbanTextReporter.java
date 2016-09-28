@@ -13,7 +13,9 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnmappableCharacterException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -73,49 +75,49 @@ public class UrbanTextReporter {
 
 		Set<Charset> prioritisedCharsets = getPrioritisedCharsets();
 
-		Map<Charset, String> results = runReporter(inputPath, prioritisedCharsets);
-
 		Writer outputWriter;
 		if (options.has(output)) {
 			final Path outputPath = output.value(options).toPath();
 			if (Files.exists(outputPath)) {
-				throw new FileNotFoundException("Could not find output file: " + outputPath.toString());
+				throw new FileNotFoundException(
+						"Output file already exists, not overwriting: " + outputPath.toString());
 			}
 			outputWriter = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 		} else {
 			outputWriter = new PrintWriter(System.out);
 		}
 
-		try {
-			writeResults(results, outputWriter);
+		try (SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
+				Arrays.asList("Charset", "EncoderError"));) {
+			runReporter(inputPath, prioritisedCharsets, csvWriter);
 		} finally {
 			outputWriter.close();
 		}
 	}
 
-	private static void writeResults(Map<Charset, String> results, Writer outputWriter) throws IOException {
-		try (SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
-				Arrays.asList("Charset", "EncoderError"));) {
-			for (Entry<Charset, String> nextResult : results.entrySet()) {
-				csvWriter.write(Arrays.asList(nextResult.getKey().name(), nextResult.getValue()));
+	private static void runReporter(final Path inputPath, Set<Charset> prioritisedCharsets, SequenceWriter csvWriter)
+			throws IOException {
+
+		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(inputPath.toFile(), "r");
+				final FileChannel inChannel = randomAccessFile.getChannel();) {
+			MappedByteBuffer inBuffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, inChannel.size());
+			for (Charset nextCharset : prioritisedCharsets) {
+				try {
+					inBuffer.rewind();
+					nextCharset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+							.onUnmappableCharacter(CodingErrorAction.REPORT).decode(inBuffer);
+					csvWriter.write(Arrays.asList(nextCharset.name(), ""));
+				} catch (MalformedInputException | UnmappableCharacterException e) {
+					csvWriter.write(Arrays.asList(nextCharset.name(), e.getMessage()));
+				} catch (IOException e) {
+					// Other IO Exceptions are not likely to be recoverable, so
+					// abort early rather than continuing
+					throw e;
+				} catch (Exception e) {
+					csvWriter.write(Arrays.asList(nextCharset.name(), e.getMessage()));
+				}
 			}
 		}
-	}
-
-	private static Map<Charset, String> runReporter(final Path inputPath, Set<Charset> prioritisedCharsets) {
-		Map<Charset, String> results = new LinkedHashMap<>();
-
-		for (Charset nextCharset : prioritisedCharsets) {
-			try (FileChannel inChannel = new RandomAccessFile(inputPath.toFile(), "r").getChannel();) {
-				MappedByteBuffer inBuffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, inChannel.size());
-				nextCharset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
-						.onUnmappableCharacter(CodingErrorAction.REPORT).decode(inBuffer);
-				results.put(nextCharset, "");
-			} catch (Exception e) {
-				results.put(nextCharset, e.getMessage());
-			}
-		}
-		return results;
 	}
 
 	private static Set<Charset> getPrioritisedCharsets() {
