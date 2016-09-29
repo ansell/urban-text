@@ -118,7 +118,7 @@
 							<id>urbanreporter</id>
 						</program>
 						<program>
-							<mainClass>com.github.ansell.text.UrbanTextEngineerr</mainClass>
+							<mainClass>com.github.ansell.text.UrbanTextEngineer</mainClass>
 							<id>urbanengineer</id>
 						</program>
 					</programs>
