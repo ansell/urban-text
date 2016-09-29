@@ -129,12 +129,18 @@ public final class UrbanTextReporter {
 					System.out.print("Character coding error at byte position: ");
 					System.out.println(inBuffer.position());
 					System.out.println(e.getMessage());
+					if (inBuffer.position() > 1) {
+						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() - 2)));
+					}
 					if (inBuffer.position() > 0) {
 						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() - 1)));
 					}
 					System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position())));
 					if (inBuffer.position() < inBuffer.limit() - 1) {
 						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() + 1)));
+					}
+					if (inBuffer.position() < inBuffer.limit() - 2) {
+						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() + 2)));
 					}
 					System.out.println();
 					csvWriter.write(
