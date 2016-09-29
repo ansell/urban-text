@@ -9,10 +9,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.io.Writer;
+import java.nio.CharBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -107,7 +110,11 @@ public final class UrbanTextReporter {
 
 	public static void runReporter(final Path inputPath, Set<Charset> prioritisedCharsets, Writer outputWriter)
 			throws IOException {
+		runReporter(inputPath, prioritisedCharsets, outputWriter, false);
+	}
 
+	public static void runReporter(final Path inputPath, Set<Charset> prioritisedCharsets, Writer outputWriter,
+			boolean exitOnFirstError) throws IOException {
 		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(inputPath.toFile(), "r");
 				final FileChannel inChannel = randomAccessFile.getChannel();
 				final SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
@@ -116,20 +123,53 @@ public final class UrbanTextReporter {
 			for (Charset nextCharset : prioritisedCharsets) {
 				try {
 					inBuffer.rewind();
-					nextCharset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
-							.onUnmappableCharacter(CodingErrorAction.REPORT).decode(inBuffer);
+					decodeBuffer(inBuffer, nextCharset);
 					csvWriter.write(Arrays.asList(nextCharset.name(), ""));
 				} catch (CharacterCodingException e) {
 					csvWriter.write(Arrays.asList(nextCharset.name(), e.getMessage()));
+					if (exitOnFirstError) {
+						throw e;
+					}
 				} catch (IOException e) {
 					// Other IO Exceptions are not likely to be recoverable, so
 					// abort early rather than continuing
 					throw e;
 				} catch (Exception e) {
 					csvWriter.write(Arrays.asList(nextCharset.name(), e.getMessage()));
+					if (exitOnFirstError) {
+						throw e;
+					}
 				}
 			}
 		}
+	}
+
+	public static void encodeFile(final CharBuffer inBuffer, final Path outputPath, final Charset nextCharset)
+			throws IOException {
+		CharsetEncoder charsetEncoder = nextCharset.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+				.onUnmappableCharacter(CodingErrorAction.REPORT);
+		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(outputPath.toFile(), "w");
+				final FileChannel inChannel = randomAccessFile.getChannel();) {
+			MappedByteBuffer outBuffer = inChannel.map(FileChannel.MapMode.READ_WRITE, 0, inChannel.size());
+			outBuffer.rewind();
+			charsetEncoder.encode(inBuffer, outBuffer, true);
+		}
+	}
+
+	public static CharBuffer decodeFile(final Path inputPath, Charset nextCharset) throws IOException {
+		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(inputPath.toFile(), "r");
+				final FileChannel inChannel = randomAccessFile.getChannel();) {
+			MappedByteBuffer inBuffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, inChannel.size());
+			inBuffer.rewind();
+			return decodeBuffer(inBuffer, nextCharset);
+		}
+	}
+
+	public static CharBuffer decodeBuffer(MappedByteBuffer inBuffer, Charset nextCharset)
+			throws CharacterCodingException {
+		CharsetDecoder charsetDecoder = nextCharset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+				.onUnmappableCharacter(CodingErrorAction.REPORT);
+		return charsetDecoder.decode(inBuffer);
 	}
 
 	public static Set<Charset> getPrioritisedCharsets() {
