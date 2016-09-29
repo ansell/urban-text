@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.io.Writer;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -118,33 +119,22 @@ public final class UrbanTextReporter {
 		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(inputPath.toFile(), "r");
 				final FileChannel inChannel = randomAccessFile.getChannel();
 				final SequenceWriter csvWriter = CSVStream.newCSVWriter(outputWriter,
-						Arrays.asList("Charset", "EncoderError", "Position"));) {
+						Arrays.asList("Charset", "EncoderError", "Position", "BytesContext"));) {
 			MappedByteBuffer inBuffer = inChannel.map(FileChannel.MapMode.READ_ONLY, 0, inChannel.size());
 			for (Charset nextCharset : prioritisedCharsets) {
 				try {
 					inBuffer.rewind();
 					decodeBuffer(inBuffer, nextCharset);
-					csvWriter.write(Arrays.asList(nextCharset.name(), "", ""));
+					csvWriter.write(Arrays.asList(nextCharset.name(), "", "", ""));
 				} catch (CharacterCodingException e) {
-					System.out.print("Character coding error at byte position: ");
-					System.out.println(inBuffer.position());
-					System.out.println(e.getMessage());
-					if (inBuffer.position() > 1) {
-						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() - 2)));
-					}
-					if (inBuffer.position() > 0) {
-						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() - 1)));
-					}
-					System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position())));
-					if (inBuffer.position() < inBuffer.limit() - 1) {
-						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() + 1)));
-					}
-					if (inBuffer.position() < inBuffer.limit() - 2) {
-						System.out.print(String.format("%02X ", inBuffer.get(inBuffer.position() + 2)));
-					}
-					System.out.println();
-					csvWriter.write(
-							Arrays.asList(nextCharset.name(), e.getMessage(), Integer.toString(inBuffer.position())));
+					// System.out.print("Character coding error at byte
+					// position: ");
+					// System.out.println(inBuffer.position());
+					// System.out.println(e.getMessage());
+					StringBuilder nextBytes = getDebugBytesFromBuffer(inBuffer);
+					// System.out.println(nextBytes.toString());
+					csvWriter.write(Arrays.asList(nextCharset.name(), e.getMessage(),
+							Integer.toString(inBuffer.position()), nextBytes.toString()));
 					if (exitOnFirstError) {
 						throw e;
 					}
@@ -153,14 +143,32 @@ public final class UrbanTextReporter {
 					// abort early rather than continuing
 					throw e;
 				} catch (Exception e) {
-					csvWriter.write(
-							Arrays.asList(nextCharset.name(), e.getMessage(), Integer.toString(inBuffer.position())));
+					csvWriter.write(Arrays.asList(nextCharset.name(), e.getMessage(),
+							Integer.toString(inBuffer.position()), ""));
 					if (exitOnFirstError) {
 						throw e;
 					}
 				}
 			}
 		}
+	}
+
+	public static StringBuilder getDebugBytesFromBuffer(ByteBuffer inBuffer) {
+		StringBuilder nextBytes = new StringBuilder();
+		if (inBuffer.position() > 1) {
+			nextBytes.append(String.format("%02X ", inBuffer.get(inBuffer.position() - 2)));
+		}
+		if (inBuffer.position() > 0) {
+			nextBytes.append(String.format("%02X ", inBuffer.get(inBuffer.position() - 1)));
+		}
+		nextBytes.append(String.format("[%02X] ", inBuffer.get(inBuffer.position())));
+		if (inBuffer.position() < inBuffer.limit() - 1) {
+			nextBytes.append(String.format("%02X ", inBuffer.get(inBuffer.position() + 1)));
+		}
+		if (inBuffer.position() < inBuffer.limit() - 2) {
+			nextBytes.append(String.format("%02X ", inBuffer.get(inBuffer.position() + 2)));
+		}
+		return nextBytes;
 	}
 
 	public static void encodeFile(final CharBuffer inBuffer, final Path outputPath, final Charset nextCharset)

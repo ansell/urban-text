@@ -132,7 +132,7 @@ public class UrbanTextReporterTest {
 			// If there are no charsets available, the header line should still
 			// be printed successfully with no errors
 			assertTrue("Unexpected output for empty charsets",
-					Arrays.equals("Charset,EncoderError,Position\n".getBytes(StandardCharsets.UTF_8), testOutput.toByteArray()));
+					Arrays.equals("Charset,EncoderError,Position,BytesContext\n".getBytes(StandardCharsets.UTF_8), testOutput.toByteArray()));
 		} finally {
 			System.setOut(previousOut);
 		}
@@ -154,7 +154,7 @@ public class UrbanTextReporterTest {
 			// If there are no charsets available, the header line should still
 			// be printed successfully with no errors
 			assertTrue("Unexpected output for UTF-8 only", Arrays.equals(
-					"Charset,EncoderError,Position\nUTF-8,,\n".getBytes(StandardCharsets.UTF_8), testOutput.toByteArray()));
+					"Charset,EncoderError,Position,BytesContext\nUTF-8,,,\n".getBytes(StandardCharsets.UTF_8), testOutput.toByteArray()));
 		} finally {
 			System.setOut(previousOut);
 		}
