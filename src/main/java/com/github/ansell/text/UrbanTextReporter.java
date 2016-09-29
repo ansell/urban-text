@@ -148,11 +148,9 @@ public final class UrbanTextReporter {
 			throws IOException {
 		CharsetEncoder charsetEncoder = nextCharset.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
 				.onUnmappableCharacter(CodingErrorAction.REPORT);
-		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(outputPath.toFile(), "w");
-				final FileChannel inChannel = randomAccessFile.getChannel();) {
-			MappedByteBuffer outBuffer = inChannel.map(FileChannel.MapMode.READ_WRITE, 0, inChannel.size());
-			outBuffer.rewind();
-			charsetEncoder.encode(inBuffer, outBuffer, true);
+		try (final RandomAccessFile randomAccessFile = new RandomAccessFile(outputPath.toFile(), "rw");
+				final FileChannel outChannel = randomAccessFile.getChannel();) {
+			outChannel.write(charsetEncoder.encode(inBuffer));
 		}
 	}
 
