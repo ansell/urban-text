@@ -115,7 +115,11 @@
 					<programs>
 						<program>
 							<mainClass>com.github.ansell.text.UrbanTextReporter</mainClass>
-							<id>urbantext</id>
+							<id>urbanreporter</id>
+						</program>
+						<program>
+							<mainClass>com.github.ansell.text.UrbanTextEngineerr</mainClass>
+							<id>urbanengineer</id>
 						</program>
 					</programs>
 				</configuration>
