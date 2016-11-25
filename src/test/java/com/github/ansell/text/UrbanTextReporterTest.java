@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -171,4 +172,10 @@ public class UrbanTextReporterTest {
 		assertTrue("UTF8 should be supported by all systems", prioritisedCharsets.contains(StandardCharsets.UTF_8));
 	}
 
+	@Test
+	public final void testLanguageTags() throws Exception {
+		System.out.println(new Locale.Builder().setLanguageTag("en-AU").build().toLanguageTag());
+		System.out.println(new Locale.Builder().setLanguageTag("en-au").build().toLanguageTag());
+	}
+	
 }
